@@ -144,6 +144,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, pd, headers, status, request);
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleGenericException(Exception ex, WebRequest request) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        pd.setType(URI.create(ERROR_BASE + "internal-error"));
+        pd.setTitle("Internal Server Error");
+        pd.setProperty("code", "INTERNAL_SERVER_ERROR");
+        pd.setProperty("timestamp", Instant.now());
+        extractInstance(pd, request);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(PROBLEM_JSON).body(pd);
+    }
+
     private void extractInstance(ProblemDetail pd, WebRequest request) {
         if (request instanceof ServletWebRequest swr) {
             pd.setInstance(URI.create(swr.getRequest().getRequestURI()));

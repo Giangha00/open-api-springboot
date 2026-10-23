@@ -192,7 +192,7 @@ paths:
         required: true
         schema:
           type: "string"
-          example: "REQ-1792761836178"
+          example: "REQ-1792763312546"
       requestBody:
         content:
           application/json:
@@ -452,6 +452,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/OrderTransitionRequest"
+        required: true
       responses:
         "200":
           description: "Chuyển trạng thái thành công"

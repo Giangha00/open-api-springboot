@@ -54,6 +54,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/OrderTransitionRequest"
+        required: true
       responses:
         "200":
           description: "Chuyển trạng thái thành công"

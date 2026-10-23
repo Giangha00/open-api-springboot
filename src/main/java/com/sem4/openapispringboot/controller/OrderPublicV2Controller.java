@@ -36,7 +36,7 @@ public class OrderPublicV2Controller implements OrderPublicV2Api {
     @Override
     public ResponseEntity<OrderResponseV2> createOrder(String idempotencyKey, CreateOrderRequest request) {
         AuthContext.UserPrincipal user = AuthContext.get();
-        Long customerId = (user != null && user.customerId() != null) ? user.customerId() : 1L;
+        Long customerId = (user != null && user.customerId() != null) ? user.customerId() : Long.valueOf(1L);
 
         OrderResponseV2 response = orderService.createOrder(request, customerId, idempotencyKey);
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
@@ -59,7 +59,7 @@ public class OrderPublicV2Controller implements OrderPublicV2Api {
     ) {
         AuthContext.UserPrincipal user = AuthContext.get();
         boolean isAdmin = user != null && "ROLE_ADMIN".equalsIgnoreCase(user.role());
-        Long customerId = user != null ? user.customerId() : 1L;
+        Long customerId = (user != null && user.customerId() != null) ? user.customerId() : (isAdmin ? null : Long.valueOf(1L));
 
         Sort sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
         if (sort != null && !sort.isBlank()) {
@@ -77,7 +77,7 @@ public class OrderPublicV2Controller implements OrderPublicV2Api {
     public ResponseEntity<OrderResponseV2> getOrderByCodeV2(String code) {
         AuthContext.UserPrincipal user = AuthContext.get();
         boolean isAdmin = user != null && "ROLE_ADMIN".equalsIgnoreCase(user.role());
-        Long customerId = user != null ? user.customerId() : null;
+        Long customerId = (user != null && user.customerId() != null) ? user.customerId() : null;
 
         OrderResponseV2 response = orderService.getOrderByCodeV2(code, customerId, isAdmin);
         return ResponseEntity.ok()
@@ -93,7 +93,7 @@ public class OrderPublicV2Controller implements OrderPublicV2Api {
     ) {
         AuthContext.UserPrincipal user = AuthContext.get();
         String role = user != null ? user.role() : "ROLE_CUSTOMER";
-        Long customerId = user != null ? user.customerId() : 1L;
+        Long customerId = (user != null && user.customerId() != null) ? user.customerId() : Long.valueOf(1L);
 
         OrderTransitionResponse response = orderService.transitionOrder(code, request, ifMatch, customerId, role);
         return ResponseEntity.ok()
