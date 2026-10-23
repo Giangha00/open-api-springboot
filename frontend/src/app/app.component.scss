@@ -1,0 +1,31 @@
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+}
+
+.app-footer {
+  border-top: 1px solid var(--border-color);
+  background: rgba(10, 14, 23, 0.95);
+  padding: 1.25rem 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+
+  .footer-inner {
+    max-width: 1380px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+
+    strong {
+      color: var(--text-muted);
+    }
+  }
+}

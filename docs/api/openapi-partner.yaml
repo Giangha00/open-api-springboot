@@ -1,0 +1,232 @@
+---
+openapi: "3.1.0"
+info:
+  title: "TechShop Order & Catalog API"
+  description: "Hệ thống REST API quản lý Sản phẩm và Dịch vụ Đặt hàng cho TechShop\
+    \ theo chuẩn OpenAPI 3.1 & Spring Boot 4."
+  contact:
+    name: "TechShop Backend Team"
+    email: "support@techshop.vn"
+  license:
+    name: "Apache 2.0"
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+  version: "1.0.0"
+externalDocs:
+  description: "Tài liệu hướng dẫn tích hợp chi tiết"
+  url: "https://example.com/docs/techshop-api"
+servers:
+- url: "http://localhost:8080"
+  description: "Môi trường hiện tại"
+- url: "https://api.techshop.vn"
+  description: "Production Gateway"
+tags:
+- name: "Partner (Shipping)"
+  description: "Webhook tiếp nhận cập nhật vận chuyển từ Đơn vị giao vận"
+paths:
+  /api/webhooks/shipping:
+    post:
+      tags:
+      - "Partner (Shipping)"
+      summary: "Webhook cập nhật trạng thái vận chuyển từ đối tác"
+      description: "Đối tác giao vận gọi webhook để cập nhật: SHIP (bắt đầu giao hà\
+        ng), DELIVER (đã giao thành công), hoặc FAIL_DELIVERY (giao thất bại, chờ\
+        \ giao lại). Bắt buộc xác thực bằng header X-Partner-Key."
+      operationId: "handleShippingWebhook"
+      parameters:
+      - name: "X-Partner-Key"
+        in: "header"
+        description: "Mã API Key của đối tác giao vận"
+        required: true
+        schema:
+          type: "string"
+        example: "partner-secret-key-2026"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShippingWebhookRequest"
+        required: true
+      responses:
+        "200":
+          description: "Cập nhật trạng thái vận chuyển thành công"
+          headers:
+            X-Request-Id:
+              description: "Mã theo dõi duy nhất cho mỗi yêu cầu HTTP (UUID)"
+              schema:
+                type: "string"
+                example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderTransitionResponse"
+        "403":
+          description: "X-Partner-Key không hợp lệ hoặc thiếu"
+          headers:
+            X-Request-Id:
+              description: "Mã theo dõi duy nhất cho mỗi yêu cầu HTTP (UUID)"
+              schema:
+                type: "string"
+                example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ApiProblem"
+        "409":
+          description: "Trạng thái đơn hàng không hợp lệ cho cập nhật này"
+          headers:
+            X-Request-Id:
+              description: "Mã theo dõi duy nhất cho mỗi yêu cầu HTTP (UUID)"
+              schema:
+                type: "string"
+                example: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ApiProblem"
+      security:
+      - partnerKey: []
+components:
+  schemas:
+    ShippingWebhookRequest:
+      type: "object"
+      description: "Webhook yêu cầu cập nhật giao hàng từ đối tác vận chuyển"
+      properties:
+        code:
+          type: "string"
+          description: "Mã đơn hàng cần cập nhật"
+          example: "ORD-2026-000123"
+          minLength: 1
+        action:
+          type: "string"
+          description: "Hành động vận chuyển từ đối tác (SHIP, DELIVER, hoặc FAIL_DELIVERY)"
+          enum:
+          - "SHIP"
+          - "DELIVER"
+          - "FAIL_DELIVERY"
+          example: "DELIVER"
+        notes:
+          type: "string"
+          description: "Ghi chú giao hàng hoặc lý do giao thất bại (nếu có)"
+          example: "Đã giao thành công cho khách hàng tại nhà"
+      required:
+      - "action"
+      - "code"
+    ApiProblem:
+      type: "object"
+      description: "Mô hình lỗi chuẩn RFC 9457 mở rộng với mã lỗi nghiệp vụ và chi\
+        \ tiết trường"
+      properties:
+        type:
+          type: "string"
+          format: "uri"
+          description: "URI định danh kiểu lỗi"
+          example: "https://api.example.com/errors/invalid-transition"
+        title:
+          type: "string"
+          description: "Tiêu đề ngắn gọn về lỗi"
+          example: "Invalid order state transition"
+        status:
+          type: "integer"
+          format: "int32"
+          description: "Mã trạng thái HTTP"
+          example: 409
+        detail:
+          type: "string"
+          description: "Mô tả chi tiết nguyên nhân lỗi"
+          example: "Cannot transition order from DELIVERED to CANCELLED"
+        instance:
+          type: "string"
+          description: "URI tài nguyên xảy ra lỗi"
+          example: "/api/orders/ORD-2026-000123/transitions"
+        code:
+          type: "string"
+          description: "Mã định danh lỗi nghiệp vụ duy nhất"
+          example: "ORDER_INVALID_TRANSITION"
+        timestamp:
+          type: "string"
+          format: "date-time"
+          description: "Thời điểm xảy ra lỗi"
+          example: "2026-10-23T12:00:00Z"
+        errors:
+          type: "array"
+          description: "Danh sách chi tiết lỗi validate theo trường (nếu có)"
+          items:
+            $ref: "#/components/schemas/FieldErrorItem"
+    FieldErrorItem:
+      type: "object"
+      description: "Chi tiết lỗi của từng trường dữ liệu"
+      properties:
+        field:
+          type: "string"
+          description: "Tên trường vi phạm"
+          example: "quantity"
+        message:
+          type: "string"
+          description: "Nội dung thông báo lỗi"
+          example: "must be less than or equal to 20"
+    OrderTransitionResponse:
+      type: "object"
+      description: "Kết quả chuyển trạng thái đơn hàng thành công"
+      properties:
+        code:
+          type: "string"
+          description: "Mã đơn hàng"
+          example: "ORD-2026-000123"
+        fromStatus:
+          type: "string"
+          description: "Trạng thái trước khi chuyển"
+          enum:
+          - "PENDING"
+          - "CONFIRMED"
+          - "SHIPPING"
+          - "DELIVERED"
+          - "CANCELLED"
+          - "RETURN_REQUESTED"
+          - "RETURNED"
+          example: "PENDING"
+        toStatus:
+          type: "string"
+          description: "Trạng thái sau khi chuyển thành công"
+          enum:
+          - "PENDING"
+          - "CONFIRMED"
+          - "SHIPPING"
+          - "DELIVERED"
+          - "CANCELLED"
+          - "RETURN_REQUESTED"
+          - "RETURNED"
+          example: "CONFIRMED"
+        action:
+          type: "string"
+          description: "Hành động đã thực hiện"
+          enum:
+          - "CONFIRM"
+          - "SHIP"
+          - "DELIVER"
+          - "CANCEL"
+          - "FAIL_DELIVERY"
+          - "REQUEST_RETURN"
+          - "ACCEPT_RETURN"
+          example: "CONFIRM"
+        version:
+          type: "integer"
+          format: "int64"
+          description: "Phiên bản mới của đơn hàng (ETag)"
+          example: 1
+        message:
+          type: "string"
+          description: "Thông báo kết quả"
+          example: "Đơn hàng ORD-2026-000123 đã được chuyển sang trạng thái CONFIRMED\
+            \ thành công."
+  securitySchemes:
+    bearerAuth:
+      type: "http"
+      description: "Nhập Bearer Token (Ví dụ: dev-admin-token hoặc dev-customer-token)"
+      name: "bearerAuth"
+      scheme: "bearer"
+      bearerFormat: "JWT"
+    partnerKey:
+      type: "apiKey"
+      description: "API Key dành cho đối tác vận chuyển (Mặc định dev: partner-secret-key-2026)"
+      name: "X-Partner-Key"
+      in: "header"
